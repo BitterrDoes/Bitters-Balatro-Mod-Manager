@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import subprocess
 import customtkinter as ctk
@@ -32,26 +33,32 @@ def toggle_mod(mod_folder, button):
         open(ignore_file, "w").close()
         button.configure(text="Off", fg_color="#E53552")
 
+    # update the row's enabled state
+    try:
+        parent = button.master
+        parent.enabled = (button.cget("text") == "On")
+    except Exception:
+        pass
+
 # load all mods
 def load_mods(frame):
-    for widget in frame.winfo_children(): # reset frame so later i can add a feature that updates the frame whenever you tab in??
+    for widget in frame.winfo_children():
         widget.destroy()
 
-    if not os.path.exists(MODS_PATH): # check for mods dir, if no mod dir, create one
+    if not os.path.exists(MODS_PATH):
         os.makedirs(MODS_PATH)
 
-    mods = []  # collect all mods first
-    seen_mods = set()  # no duplicates
+    mods = []
+    seen_mods = set()
 
-    # --- gather mods
     for folder in os.listdir(MODS_PATH):
-        folder_path = os.path.join(MODS_PATH, folder) # te folder path
-        if not os.path.isdir(folder_path): # ignore files 
+        folder_path = os.path.join(MODS_PATH, folder)
+        if not os.path.isdir(folder_path):
             continue
 
-        data = None  # reset this every folder
+        data = None
 
-        for file in os.listdir(folder_path): # Get manifest file
+        for file in os.listdir(folder_path):
             if not file.endswith(".json"):
                 continue
             json_path = os.path.join(folder_path, file)
@@ -64,48 +71,50 @@ def load_mods(frame):
             except:
                 continue
 
-        if not data:  # skip if no valid json found
+        if not data:
             continue
 
-        seen_mods.add(data["id"])  # mark mod as loaded
+        seen_mods.add(data["id"])
         ignore_file = os.path.join(folder_path, ".lovelyignore")
-        is_on = not os.path.exists(ignore_file)  # True if mod is enabled
+        is_on = not os.path.exists(ignore_file)
         mods.append({
             "folder_path": folder_path,
             "data": data,
             "is_on": is_on
         })
 
-    # --- sort mods
     mods.sort(key=lambda m: (not m["is_on"], (m["data"].get("display_name") or m["data"].get("name")).lower()))
 
-    # --- create da ui
     index = 1
     for mod in mods:
         folder_path = mod["folder_path"]
         data = mod["data"]
         is_on = mod["is_on"]
 
-        if index == 3: # if index exceeds 2 reset
+        if index == 3:
             index = 1
 
-        name = data.get("display_name") or data.get("name")  # get yo mod shittttt
-        author = ", ".join(data.get("author", [])) if data.get("author") else ""  # oh also the guy who made it ig
-        color = "#1E1E1E" if index == 1 else "#2A2A2A" # replaces an if statemnt so kinda removes 2 lines
+        name = data.get("display_name") or data.get("name")
+        author = ", ".join(data.get("author", [])) if data.get("author") else ""
+        color = "#1E1E1E" if index == 1 else "#2A2A2A"
         hover_color = "#3B3B3B"
-        row = ctk.CTkFrame(frame, fg_color=color) # create the actual thingy ommmmgggg
-        row.pack(fill="x", padx=10, pady=10) # place it right
+        row = ctk.CTkFrame(frame, fg_color=color)
+        row.pack(fill="x", padx=10, pady=10)
+
+        # store folder path & initial state
+        row.folder_path = folder_path
+        row.enabled = is_on
 
         # --- Icon ---
-        image_path = resource_path("Placeholder.png")  # default if no icon
+        image_path = resource_path("Placeholder.png")
         assets_path = os.path.join(folder_path, "assets", "1x")
-        if os.path.exists(assets_path): # if assets/1x exists
+        if os.path.exists(assets_path):
             for file in os.listdir(assets_path):
                 if not file.lower().endswith(".png"):
                     continue
-                if "icon" in file.lower():  # check for icon
+                if "icon" in file.lower():
                     image_path = os.path.join(assets_path, file)
-                    break  # stop at first icon
+                    break
 
         image = ctk.CTkImage(dark_image=Image.open(image_path), size=(40, 40))
         image_label = ctk.CTkLabel(row, image=image, text="")
@@ -115,20 +124,20 @@ def load_mods(frame):
         name_label = ctk.CTkLabel(row, text=name, text_color="#fff", font=("Comic Sans MS", 16))
         name_label.pack(side="left", padx=10)
 
-        # --- author / text ---
+        # author
         if author:
             author_label = ctk.CTkLabel(row, text=f"by {author}", text_color="#aaa", font=("Comic Sans MS", 12, "normal", "italic"))
             author_label.pack(side="left", padx=10)
 
-        # the button to turn off and on
+        # toggle button
         btn_text = "On" if is_on else "Off"
         btn_color = "#4CAF81" if is_on else "#E53552"
-        toggle_btn = ctk.CTkButton(row, text=btn_text, width=60, fg_color=btn_color, command=lambda f=folder_path, b=None: None, font=("Comic Sans MS", 14))
-        toggle_btn.configure(command=lambda f=folder_path, b=toggle_btn: toggle_mod(f, b))
-        toggle_btn.pack(side="right", padx=10)
+        row.toggle_btn = ctk.CTkButton(row, text=btn_text, width=60, fg_color=btn_color, font=("Comic Sans MS", 14))
+        row.toggle_btn.configure(command=lambda f=folder_path, b=row.toggle_btn: toggle_mod(f, b))
+        row.toggle_btn.pack(side="right", padx=10)
 
-        # yo pog hover effect
-        for object in {row, image_label, name_label, author_label, toggle_btn}:
+        # hover effect
+        for object in {row, image_label, name_label, row.toggle_btn}:
             object.bind("<Enter>", lambda e, r=row, c=hover_color: r.configure(fg_color=c))
             object.bind("<Leave>", lambda e, r=row, c=color: r.configure(fg_color=c))
 
@@ -155,8 +164,6 @@ Mods = [
     "Maniatro",
     "Balatropit! actually probably dont.",
     "Ultrakill"
-    "Ultrakill"
-    "Ultrakill"
 ]
 
 Music = [
@@ -171,9 +178,6 @@ Music = [
     "Radio head",
     "Jamiroquai",
     "Sound Garden",
-    "Eliott Smith",
-    "Eliott Smith",
-    "Eliott Smith",
     "Eliott Smith",
     "Stevie Wonder",
     "Geordie Greep",
@@ -190,36 +194,45 @@ Titles = [
 
 app = ctk.CTk()
 app.title("Bitter's bmm | " + random.choice(Titles))
-app.geometry("650x850")
+app.geometry("800x1000")
 
-# top shit
+# top frame
 top_frame = ctk.CTkFrame(app, fg_color="#111")
 top_frame.pack(fill="x")
 
-title = ctk.CTkLabel(top_frame, text="Bitter's mod manager", font=("Comic Sans MS", 20, "bold"))
+title = ctk.CTkButton(top_frame, text="Bitter's mod manager", fg_color="transparent", font=("Comic Sans MS", 20, "bold"), command=lambda: load_mods(mod_list))
 title.pack(side="left", padx=15, pady=10)
 
 start_btn = ctk.CTkButton(top_frame, text="Start Game", command=start_game, font=("Comic Sans MS", 16))
 start_btn.pack(side="right", padx=15, pady=10)
 
-# Toggle buttons
+# toggle button funcs
+def EnableMods():
+    for mod in mod_list.winfo_children():
+        if not mod.enabled:
+            toggle_mod(mod.folder_path, mod.toggle_btn)
 
+def DisableMods():
+    for mod in mod_list.winfo_children():
+        if mod.enabled:
+            toggle_mod(mod.folder_path, mod.toggle_btn)
 
-# Refresh button
-refreshIcon = resource_path("RefreshIcon.png")  # the cool refresh thingy
-refreshImage = ctk.CTkImage(dark_image=Image.open(refreshIcon))
-refresh_btn = ctk.CTkButton(top_frame, image=refreshImage, text="", command=lambda:load_mods(mod_list), width=24)
-refresh_btn.pack(side="right", padx=3, pady=10)
+# toggle buttons
+btn_frame = ctk.CTkFrame(top_frame, fg_color="transparent")
+btn_frame.place(relx=0.5, rely=0.5, anchor="center")
 
-# create the frame
+disablebtn = ctk.CTkButton(btn_frame, text="Disable Mods", command=DisableMods, font=("Comic Sans MS", 16), fg_color="#E53552")
+disablebtn.grid(row=0, column=0, padx=10)
+
+enablebtn = ctk.CTkButton(btn_frame, text="Enable Mods", command=EnableMods, font=("Comic Sans MS", 16), fg_color="#4CAF81")
+enablebtn.grid(row=0, column=1, padx=10)
+
+# mod list frame
 mod_frame_outer = ctk.CTkFrame(app, fg_color="#151515")
-mod_frame_outer.pack(fill="both", expand=True, padx=10, pady=10)
+mod_frame_outer.pack(fill="both", expand=True, padx=3, pady=10)
 
 mod_list = ctk.CTkScrollableFrame(mod_frame_outer)
 mod_list.pack(fill="both", expand=True, padx=10, pady=10)
-
-
-
 
 load_mods(mod_list)
 
