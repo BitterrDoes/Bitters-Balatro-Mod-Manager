@@ -2,12 +2,12 @@ import os
 import sys
 import json
 import subprocess
+import random
 import customtkinter as ctk
 from PIL import Image
 from tkinter import messagebox
-import random
 
-MODS_PATH = r"C:/Users/Sam/AppData/Roaming/Balatro/Mods"
+MODS_PATH = r"C:/Users/__/AppData/Roaming/Balatro/Mods"
 
 def resource_path(relative_path):
     try:
@@ -143,6 +143,20 @@ def load_mods(frame):
 
         index += 1
 
+# App button Funcs
+def EnableMods():
+    for mod in mod_list.winfo_children():
+        if not mod.enabled:
+            toggle_mod(mod.folder_path, mod.toggle_btn)
+
+def DisableMods():
+    for mod in mod_list.winfo_children():
+        if mod.enabled:
+            toggle_mod(mod.folder_path, mod.toggle_btn)
+
+def OpenFolder():
+    subprocess.Popen('explorer "C:\path\of\folder"')
+
 # --- APP SETUP ---
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("dark-blue")
@@ -194,7 +208,7 @@ Titles = [
 
 app = ctk.CTk()
 app.title("Bitter's bmm | " + random.choice(Titles))
-app.geometry("800x1000")
+app.geometry("1000x1000")
 
 # top frame
 top_frame = ctk.CTkFrame(app, fg_color="#111")
@@ -206,26 +220,21 @@ title.pack(side="left", padx=15, pady=10)
 start_btn = ctk.CTkButton(top_frame, text="Start Game", command=start_game, font=("Comic Sans MS", 16))
 start_btn.pack(side="right", padx=15, pady=10)
 
-# toggle button funcs
-def EnableMods():
-    for mod in mod_list.winfo_children():
-        if not mod.enabled:
-            toggle_mod(mod.folder_path, mod.toggle_btn)
-
-def DisableMods():
-    for mod in mod_list.winfo_children():
-        if mod.enabled:
-            toggle_mod(mod.folder_path, mod.toggle_btn)
-
 # toggle buttons
-btn_frame = ctk.CTkFrame(top_frame, fg_color="transparent")
+btn_frame = ctk.CTkFrame(top_frame, fg_color="transparent") # so like its placed right
 btn_frame.place(relx=0.5, rely=0.5, anchor="center")
 
-disablebtn = ctk.CTkButton(btn_frame, text="Disable Mods", command=DisableMods, font=("Comic Sans MS", 16), fg_color="#E53552")
+disablebtn = ctk.CTkButton(btn_frame, text="Disable Mods", command=DisableMods, font=("Comic Sans MS", 16), fg_color="#E53552", hover_color="#9E1B31")
 disablebtn.grid(row=0, column=0, padx=10)
 
-enablebtn = ctk.CTkButton(btn_frame, text="Enable Mods", command=EnableMods, font=("Comic Sans MS", 16), fg_color="#4CAF81")
+enablebtn = ctk.CTkButton(btn_frame, text="Enable Mods", command=EnableMods, font=("Comic Sans MS", 16), fg_color="#4CAF81", hover_color="#1F8A58")
 enablebtn.grid(row=0, column=1, padx=10)
+
+# Mod Folder Button
+folderIcon = resource_path("Folder.png")  # finally I can check my mods folder
+folderImg = ctk.CTkImage(dark_image=Image.open(folderIcon))
+folder_btn = ctk.CTkButton(top_frame, image=folderImg, text="", command=None, width=24, fg_color="#A3931F", hover_color="#82740B") # add command=lambda: If variables to be added
+folder_btn.pack(side="left", padx=3, pady=10)
 
 # mod list frame
 mod_frame_outer = ctk.CTkFrame(app, fg_color="#151515")
