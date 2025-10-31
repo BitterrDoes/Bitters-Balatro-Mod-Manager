@@ -1,9 +1,9 @@
 import os
 import sys
 import json
-import subprocess
+import shutil
 import random
-import getpass
+import subprocess
 import customtkinter as ctk
 from PIL import Image
 from tkinter import messagebox
@@ -70,7 +70,7 @@ def toggle_mod(mod_folder, button):
 
 def deleteMod(mod_folder, row):
     try:
-        os.remove(mod_folder)
+        shutil.rmtree(mod_folder)  # delete folder and contents
     except PermissionError: 
         show_admin_warning("you need to make me administrator to delete stuff")
     row.destroy()
