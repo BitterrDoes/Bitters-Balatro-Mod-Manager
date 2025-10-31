@@ -8,14 +8,41 @@ import customtkinter as ctk
 from PIL import Image
 from tkinter import messagebox
 
-MODS_PATH = r"C:/Users/" + getpass.getuser() + "/AppData/Roaming/Balatro/Mods"
+MODS_PATH = os.path.join(os.path.expanduser('~'), 'AppData', 'Roaming', 'Balatro', "Mods")
+
+def show_admin_warning(Text):
+    popup = ctk.CTkToplevel()
+    popup.title("Warning")
+    popup.geometry("350x180")
+    popup.grab_set()  # lock focus to popup
+    popup.resizable(False, False)
+    popup.attributes("-topmost", True)
+
+    # center it on screen
+    popup.update_idletasks()
+    w = popup.winfo_width()
+    h = popup.winfo_height()
+    x = (popup.winfo_screenwidth() // 2) - (w // 2)
+    y = (popup.winfo_screenheight() // 2) - (h // 2)
+    popup.geometry(f"{w}x{h}+{x}+{y}")
+
+    frame = ctk.CTkFrame(popup, fg_color="transparent", corner_radius=10)
+    frame.pack(expand=True, fill="both", padx=20, pady=20)
+
+    label = ctk.CTkLabel(frame, text=Text, font=("Comic Sans MS", 18), wraplength=280, justify="center")
+    label.pack(pady=(15, 10))
+
+    btn = ctk.CTkButton(frame, text="alright then", font=("Comic Sans MS", 14, "bold"), command=popup.destroy, width=100)
+    btn.pack(pady=(5, 10))
+
+    popup.mainloop()
 
 def resource_path(relative_path):
     try:
         base_path = sys._MEIPASS
     except Exception:
         base_path = os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
+    return os.path.join(base_path, "ASSets", relative_path)
 
 # open steam version of balatro
 def start_game():
@@ -41,6 +68,13 @@ def toggle_mod(mod_folder, button):
     except Exception:
         pass
 
+def deleteMod(mod_folder, row):
+    try:
+        os.remove(mod_folder)
+    except PermissionError: 
+        show_admin_warning("you need to make me administrator to delete stuff")
+    row.destroy()
+
 # load all mods
 def load_mods(frame):
     for widget in frame.winfo_children():
@@ -64,7 +98,7 @@ def load_mods(frame):
                 continue
             json_path = os.path.join(folder_path, file)
             try:
-                with open(json_path, "r", encoding="utf-8-sig") as f:
+                with open(json_path, "r", encoding="utf-8") as f:
                     temp_data = json.load(f)
                 if temp_data.get("id") and temp_data.get("id") not in seen_mods:
                     data = temp_data
@@ -137,31 +171,22 @@ def load_mods(frame):
         row.toggle_btn.configure(command=lambda f=folder_path, b=row.toggle_btn: toggle_mod(f, b))
         row.toggle_btn.pack(side="right", padx=10)
 
+        # Delete Button
+        delIcon = resource_path("bin.png")  # finally I can check my mods folder
+        delImg = ctk.CTkImage(dark_image=Image.open(delIcon))
+        del_btn = ctk.CTkButton(row, image=delImg, text="", command=None, width=24, fg_color="#8F1939", hover_color="#771127") # add command=lambda: If variables to be added
+        del_btn.configure(command=lambda r=row, f=folder_path: deleteMod(f, r)) # btw i have to use configure for naming i think
+        del_btn.pack(side="right", padx=5)
+
         # hover effect
-        for object in {row, image_label, name_label, row.toggle_btn}:
+        for object in {row, image_label, name_label, row.toggle_btn, del_btn}:
             object.bind("<Enter>", lambda e, r=row, c=hover_color: r.configure(fg_color=c))
             object.bind("<Leave>", lambda e, r=row, c=color: r.configure(fg_color=c))
+
 
         index += 1
 
 # App button Funcs
-def EnableMods():
-    for mod in mod_list.winfo_children():
-        if not mod.enabled:
-            toggle_mod(mod.folder_path, mod.toggle_btn)
-
-def DisableMods():
-    for mod in mod_list.winfo_children():
-        if mod.enabled:
-            toggle_mod(mod.folder_path, mod.toggle_btn)
-
-def OpenFolder():
-    subprocess.Popen('explorer "C:\path\of\folder"')
-
-# --- APP SETUP ---
-ctk.set_appearance_mode("dark")
-ctk.set_default_color_theme("dark-blue")
-
 Mods = [
     "Angled Bitterness",
     "Milky's Bullshit",
@@ -207,9 +232,41 @@ Titles = [
     "Go listen to " + random.choice(Music)
 ]
 
+def EnableMods():
+    for mod in mod_list.winfo_children():
+        if not mod.enabled:
+            toggle_mod(mod.folder_path, mod.toggle_btn)
+
+def DisableMods():
+    for mod in mod_list.winfo_children():
+        if mod.enabled:
+            toggle_mod(mod.folder_path, mod.toggle_btn)
+
+def OpenFolder():
+    subprocess.Popen('explorer ' + MODS_PATH)
+
+msgs = [
+    "say gex",
+    "go play " + random.choice(Mods),
+    "go listen to " + random.choice(Music),
+    "Die",
+    ":3",
+    "WARNING! popup may explode",
+    "please dont make more popups",
+    "wawa"
+]
+
+def popup(e):
+    if e.num == 3:
+        show_admin_warning(random.choice(msgs))
+# --- APP SETUP ---
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("dark-blue")
+
+
 app = ctk.CTk()
 app.title("Bitter's bmm | " + random.choice(Titles))
-app.geometry("1000x1000")
+app.geometry("1200x800")
 
 # top frame
 top_frame = ctk.CTkFrame(app, fg_color="#111")
@@ -217,6 +274,7 @@ top_frame.pack(fill="x")
 
 title = ctk.CTkButton(top_frame, text="Bitter's mod manager", fg_color="transparent", font=("Comic Sans MS", 20, "bold"), command=lambda: load_mods(mod_list))
 title.pack(side="left", padx=15, pady=10)
+title.bind("<Button>", popup)
 
 start_btn = ctk.CTkButton(top_frame, text="Start Game", command=start_game, font=("Comic Sans MS", 16))
 start_btn.pack(side="right", padx=15, pady=10)
@@ -234,7 +292,7 @@ enablebtn.grid(row=0, column=1, padx=10)
 # Mod Folder Button
 folderIcon = resource_path("Folder.png")  # finally I can check my mods folder
 folderImg = ctk.CTkImage(dark_image=Image.open(folderIcon))
-folder_btn = ctk.CTkButton(top_frame, image=folderImg, text="", command=None, width=24, fg_color="#A3931F", hover_color="#82740B") # add command=lambda: If variables to be added
+folder_btn = ctk.CTkButton(top_frame, image=folderImg, text="", command=OpenFolder, width=24, fg_color="#A3931F", hover_color="#82740B") # add command=lambda: If variables to be added
 folder_btn.pack(side="left", padx=3, pady=10)
 
 # mod list frame
@@ -247,3 +305,5 @@ mod_list.pack(fill="both", expand=True, padx=10, pady=10)
 load_mods(mod_list)
 
 app.mainloop()
+
+# pyinstaller --onefile --noconsole --icon=icon.ico --add-data "ASSETS;ASSETS" main.py when exporting
