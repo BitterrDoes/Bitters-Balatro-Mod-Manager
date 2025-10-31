@@ -3,11 +3,12 @@ import sys
 import json
 import subprocess
 import random
+import getpass
 import customtkinter as ctk
 from PIL import Image
 from tkinter import messagebox
 
-MODS_PATH = r"C:/Users/__/AppData/Roaming/Balatro/Mods"
+MODS_PATH = r"C:/Users/" + getpass.getuser() + "/AppData/Roaming/Balatro/Mods"
 
 def resource_path(relative_path):
     try:
