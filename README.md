@@ -11,3 +11,9 @@ Before this project I didnt know a lick of python, and thanks to this project I 
 - *a play button....*
 - uuh....
 - i mean the text for the window has some flavor text I guess
+
+## Planned
+
+- Mod packs!
+- finding and downloading mods from the mod manager
+- listening to the community
