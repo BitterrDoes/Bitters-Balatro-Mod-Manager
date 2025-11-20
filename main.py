@@ -415,7 +415,8 @@ def load_download(frame):
         # else:                                                                 # I'll bring this back soonish, since caching will reduce shit
         base = "https://raw.githubusercontent.com/skyline69/balatro-mod-index/main/mods"
         repo = "https://api.github.com/repos/skyline69/balatro-mod-index/contents/mods"
-        folders = requests.get(repo).json()
+        folders = requests.get(repo).json() # {'name': 'Arashi Fox@Arashicoolstuff', 'path': 'mods/Arashi Fox@Arashicoolstuff', 'sha': 'b15648c004c2e497614caec291fbcb9360220d58', 'size': 0, 'url': 'https://api.github.com/repos/skyline69/balatro-mod-index/contents/mods/Arashi%20Fox@Arashicoolstuff?ref=main', 'html_url': 'https://github.com/skyline69/balatro-mod-index/tree/main/mods/Arashi%20Fox@Arashicoolstuff', 'git_url': 'https://api.github.com/repos/skyline69/balatro-mod-index/git/trees/b15648c004c2e497614caec291fbcb9360220d58', 'download_url': None, 'type': 'dir', '_links': {'self': 'https://api.github.com/repos/skyline69/balatro-mod-index/contents/mods/Arashi%20Fox@Arashicoolstuff?ref=main', 'git': 'https://api.github.com/repos/skyline69/balatro-mod-index/git/trees/b15648c004c2e497614caec291fbcb9360220d58', 'html': 'https://github.com/skyline69/balatro-mod-index/tree/main/mods/Arashi%20Fox@Arashicoolstuff'}}
+        folders = sorted(folders, key=lambda item: item["name"][str.find(item["name"], "@"):len(item["name"])])
 
         threads = []
         def loadmod_cool(f):
@@ -440,8 +441,9 @@ def load_download(frame):
             mods.append(modinfo)
 
         chunkshown = False
-        for i in range(len(folders)):
+        for i in range(len(folders)): # omg my 1 month problem was that I was that **I** sorted it wrong...
             f = folders[i]
+            print("wawawawa", f)
             if f["type"] != "dir": continue
             threads = [t for t in threads if t.is_alive()]  # fuck dead threads
 
