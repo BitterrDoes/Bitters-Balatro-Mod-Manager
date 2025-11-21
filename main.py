@@ -8,15 +8,17 @@ import requests
 import threading
 import subprocess
 from PIL import Image
-from enum import Enum
 from io import BytesIO
-from luaparser import ast
-from luaparser import astnodes
 import customtkinter as ctk
 from tkinter import messagebox
+from luaparser import ast, astnodes
 
-MODS_PATH = os.path.join(os.path.expanduser('~'), 'AppData', 'Roaming', 'Balatro', "Mods")
-SMODS_PATH = os.path.join(os.path.expanduser('~'), 'AppData', 'Roaming', 'Balatro', "Versions")
+MODS_PATH = os.path.join(os.getenv('APPDATA'), "Balatro", "Mods")
+SMODS_PATH = os.path.join(os.getenv('APPDATA'), "Balatro", "Versions")
+CACHE_PATH = os.path.join(os.getenv('APPDATA'), "Bitters")
+
+if not os.path.exists(CACHE_PATH):
+    os.makedirs(CACHE_PATH)
 
 global busy
 busy = False
@@ -249,7 +251,6 @@ def load_mods(frame):
 
         color = "#1E1E1E"
         # Check if current smods == this one
-        print(smod_ver, Currentsmods["version"])
         if smod_ver == Currentsmods["version"]:
             color = "#2A2A2A"
             selected = True 
@@ -267,10 +268,8 @@ def load_mods(frame):
     for smod in versions:
         addsmod(smod)
     if not found and not os.path.exists(os.path.join(SMODS_PATH, Currentsmods["folder_name"])):
-        print(Currentsmods["folder_path"])
         # clone smods version, and paste it to SMODS_PATH
         shutil.copytree(Currentsmods["folder_path"], os.path.join(SMODS_PATH, Currentsmods["folder_name"]))
-        print("wawa")
     if len(smodsRow.winfo_children()) == 0:
         text = ctk.CTkLabel(smodsRow, text = "Couldn't find any instances of smods, try reloading.", font=("Comic Sans MS", 32))
         text.pack()
@@ -378,59 +377,63 @@ def load_download(frame):
 
             nonlocal idx
             chunk = mods[start:start+CHUNK]
-            for m in chunk:
+            for i, m in enumerate(chunk):
                 color = "#1E1E1E" if idx % 2 == 0 else "#2A2A2A"
-                row = ctk.CTkFrame(frame, fg_color=color)
-                row.pack(fill="x", padx=10, pady=5)
-
-                image_path = resource_path("Placeholder.png")
-                img = ctk.CTkImage(dark_image=Image.open(image_path), size=(40,40))
+                row = ctk.CTkFrame(frame, fg_color=color, width=260, height=200)
+                row.grid(padx=10, pady=5)
                 
-                ctk.CTkLabel(row, image=img, text="").pack(side="left", padx=10)
-                ctk.CTkLabel(row, text=m["meta"].get("title") or m["name"], text_color="#fff", font=("Comic Sans MS", 16)).pack(side="left", padx=10)
+                # later change this to a url (m["thumb"])
+                image = Image.open(resource_path("Placeholder.png"))
+                if m["thumb"]:
+                    try:
+                        image = Image.open(BytesIO(requests.get(m["thumb"]).content))
+                    except:
+                        pass
+
+                img = ctk.CTkImage(dark_image=image, size=(250 ,141.625)) # 16:9
+                
+                ctk.CTkLabel(row, image=img, text="").pack(side="top", padx=10, pady=5)
+                ctk.CTkLabel(row, text=m["meta"].get("title") or m["name"], text_color="#fff", font=("Comic Sans MS", 16)).pack(side="left", padx=10, pady=5)
 
                 def dl(mod=m):
-                    try:
-                        r = requests.get(mod["dl"])
-                        os.makedirs("mods_downloaded", exist_ok=True)
-                        with open(f"mods_downloaded/{mod['name']}.zip", "wb") as f:
-                            f.write(r.content)
-                        ctk.CTkLabel(frame, text=f"downloaded {mod['name']}!", text_color="green").pack()
-                    except: ctk.CTkLabel(frame, text=f"failed to download {mod['name']}", text_color="red").pack()
+                    pass
 
-                ctk.CTkButton(row, text="Download", width=80, fg_color="#4C78E5", command=dl).pack(side="right", padx=10)
+                ctk.CTkButton(row, text="Download", width=80, fg_color="#4C78E5", command=dl).pack(side="right", padx=10, pady=5)
                 idx += 1
 
             # load more
             if start + CHUNK < len(mods):
                 btn = ctk.CTkButton(frame, text="Load More") # sometimes just wont create ig
-                btn.pack(pady=10)
+                btn.grid(pady=10)
                 btn.configure(False,command=lambda b=btn: show_chunk(start+CHUNK, b))
 
         frame.after(0, lambda: show_chunk(0, None))
-
-        # if os.path.exists(CACHE_PATH):
-        #     with open(CACHE_PATH, "r", encoding="utf-8") as f:
-        #         mods = json.load(f)
-        # else:                                                                 # I'll bring this back soonish, since caching will reduce shit
+        
         base = "https://raw.githubusercontent.com/skyline69/balatro-mod-index/main/mods"
         repo = "https://api.github.com/repos/skyline69/balatro-mod-index/contents/mods"
-        folders = requests.get(repo).json() # {'name': 'Arashi Fox@Arashicoolstuff', 'path': 'mods/Arashi Fox@Arashicoolstuff', 'sha': 'b15648c004c2e497614caec291fbcb9360220d58', 'size': 0, 'url': 'https://api.github.com/repos/skyline69/balatro-mod-index/contents/mods/Arashi%20Fox@Arashicoolstuff?ref=main', 'html_url': 'https://github.com/skyline69/balatro-mod-index/tree/main/mods/Arashi%20Fox@Arashicoolstuff', 'git_url': 'https://api.github.com/repos/skyline69/balatro-mod-index/git/trees/b15648c004c2e497614caec291fbcb9360220d58', 'download_url': None, 'type': 'dir', '_links': {'self': 'https://api.github.com/repos/skyline69/balatro-mod-index/contents/mods/Arashi%20Fox@Arashicoolstuff?ref=main', 'git': 'https://api.github.com/repos/skyline69/balatro-mod-index/git/trees/b15648c004c2e497614caec291fbcb9360220d58', 'html': 'https://github.com/skyline69/balatro-mod-index/tree/main/mods/Arashi%20Fox@Arashicoolstuff'}}
-        folders = sorted(folders, key=lambda item: item["name"][str.find(item["name"], "@"):len(item["name"])])
+        folders = requests.get(repo).json()
+        folders = sorted(folders, key=lambda item: item["name"][str.find(item["name"], "@"):len(item["name"])]) # omg my 1 month problem was that I was that **I** sorted it wrong...
 
         threads = []
         def loadmod_cool(f):
+
             modinfo = {"name": f["name"], "meta": {}, "desc": "", "thumb": None, "dl": None}
 
             try:
                 meta = requests.get(f"{base}/{f['name']}/meta.json").json()
+
                 modinfo["meta"] = meta
+                modinfo["name"] = meta["title"]
+                # meta Meta:  {'title': '123abc', 'requires-steamodded': False, 'requires-talisman': False, 'categories': ['Quality of Life', 'Miscellaneous'], 'author': '123abc',
+                #  'repo': 'https://github.com/123/abc', 'downloadURL': 'https://github.com/123/abc/archive/refs/tags/V1.0.0.zip', 'version': '1.0.0'}
                 modinfo["dl"] = meta.get("download_url")
-            except: pass
+            except: return
 
             try:
                 modinfo["desc"] = requests.get(f"{base}/{f['name']}/description.md").text
-            except: pass
+            except:
+                modinfo["desc"] = "Unabled To load description"
+                pass
 
             try:
                 thumb_url = f"{base}/{f['name']}/thumbnail.jpg"
@@ -441,9 +444,8 @@ def load_download(frame):
             mods.append(modinfo)
 
         chunkshown = False
-        for i in range(len(folders)): # omg my 1 month problem was that I was that **I** sorted it wrong...
+        for i in range(len(folders)):
             f = folders[i]
-            print("wawawawa", f)
             if f["type"] != "dir": continue
             threads = [t for t in threads if t.is_alive()]  # fuck dead threads
 
@@ -463,7 +465,7 @@ def load_download(frame):
                 busy = False
 
     t = threading.Thread(target=worker)
-    t.start() # to not lag my bloody ui, and make it occasionally crash
+    t.start() # to not lag my uio
     
 # info buttons
 def createInfobuttons(frame, modframe): # frame = sidemenu, modframe = the frame for mods
@@ -600,6 +602,7 @@ createInfobuttons(Infoframe, mod_list)
 
 load_mods(mod_list)
 
+app.grid_columnconfigure(0, weight=1)
 app.mainloop()
 
 # pyinstaller --onefile --noconsole --icon=icon.ico --add-data "ASSETS;ASSETS" main.py when exporting
