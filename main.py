@@ -55,7 +55,7 @@ def resource_path(relative_path):
         base_path = sys._MEIPASS
     except Exception:
         base_path = os.path.abspath(".")
-    return os.path.join(base_path, "ASSets", relative_path)
+    return os.path.join(base_path, "ASSETS", relative_path)
 
 # open steam version of balatro
 def start_game():
@@ -106,73 +106,82 @@ def load_mods(frame):
                                             #   ↑
     # go through each mod and add them to the table
     # note that this also includes finding current smods
-    for folder in os.listdir(MODS_PATH):
-        folder_path = os.path.join(MODS_PATH, folder)
-        if not os.path.isdir(folder_path):
-            continue
+    if len(os.listdir(MODS_PATH)) == 0:
+        ctk.CTkLabel(frame, text = "You dont have any mods..", font=("Comic Sans MS", 32), pady=8).pack()
+        ctk.CTkLabel(frame, text = "try going to #modding in the balatro server", font=("Comic Sans MS", 24), pady=8).pack()
+        discordicon = Image.open(resource_path("bin.png"))
 
-        data = None
+        busy = False
 
-        # version = None
-        for file in os.listdir(folder_path):
-            if not file.endswith(".json"):
+        return
+    else:
+        for folder in os.listdir(MODS_PATH):
+            folder_path = os.path.join(MODS_PATH, folder)
+            if not os.path.isdir(folder_path):
                 continue
-            json_path = os.path.join(folder_path, file)
 
-            smods = False
+            data = None
 
-            try:
-                with open(json_path, "r", encoding="utf-8") as f:
-                    temp_data = json5.load(f)
-                if temp_data.get("id") and temp_data.get("id") not in seen_mods:
-                    data = temp_data
-                    break
-                else:
-                    if temp_data.get("name") == "Steamodded":
-                        data = temp_data # waaawawawa
-                        smods = True
+            # version = None
+            for file in os.listdir(folder_path):
+                if not file.endswith(".json"):
+                    continue
+                json_path = os.path.join(folder_path, file)
+
+                smods = False
+
+                try:
+                    with open(json_path, "r", encoding="utf-8") as f:
+                        temp_data = json5.load(f)
+                    if temp_data.get("id") and temp_data.get("id") not in seen_mods:
+                        data = temp_data
                         break
-            except:
+                    else:
+                        if temp_data.get("name") == "Steamodded":
+                            data = temp_data # waaawawawa
+                            smods = True
+                            break
+                except:
+                    continue
+            if smods: # Smods related
+                version_path = None
+                version = None
+                for fname in os.listdir(folder_path):
+                    if fname == "version.lua":
+                        version_path = os.path.join(folder_path, fname)
+                        break
+
+                if version_path: 
+
+                    with open(version_path, "r", encoding="utf-8") as f: # yet again still smods related
+                        lua_src = f.read()
+
+                    tree = ast.parse(lua_src)
+
+                    for node in ast.walk(tree):
+                        if isinstance(node, astnodes.Return) and isinstance(node.values[0], astnodes.String): # should always be 0, since it doesnt ever have more than 1 return, istg if john smods changes it
+                            version = node.values[0].s
+                            break
+            
+
+            if not data:
                 continue
-        if smods:
-            version_path = None
-            version = None
-            for fname in os.listdir(folder_path):
-                if fname == "version.lua":
-                    version_path = os.path.join(folder_path, fname)
-                    break
-
-            if version_path:
-
-                with open(version_path, "r", encoding="utf-8") as f:
-                    lua_src = f.read()
-
-                tree = ast.parse(lua_src)
-
-                for node in ast.walk(tree):
-                    if isinstance(node, astnodes.Return) and isinstance(node.values[0], astnodes.String): # should always be 0, since it doesnt ever have more than 1 return, istg if john smods changes it
-                        version = node.values[0].s
-                        break
-        
-
-        if not data:
-            continue
-        
-        if not smods:
-            seen_mods.add(data["id"])
-            ignore_file = os.path.join(folder_path, ".lovelyignore")
-            is_on = not os.path.exists(ignore_file)
-            mods.append({
-                "folder_path": folder_path,
-                "data": data,
-                "is_on": is_on
-            })
-        else:
-            Currentsmods = {
-                "folder_name": folder,
-                "folder_path": folder_path,
-                "version": version,
-            }
+            
+            if not smods:
+                seen_mods.add(data["id"])
+                ignore_file = os.path.join(folder_path, ".lovelyignore")
+                is_on = not os.path.exists(ignore_file)
+                mods.append({
+                    "folder_path": folder_path,
+                    "data": data,
+                    "is_on": is_on
+                })
+            else:
+                Currentsmods = {
+                    "folder_name": folder,
+                    "folder_path": folder_path,
+                    "version": version,
+                }
 
     # self explanatory
     mods.sort(key=lambda m: (not m["is_on"], (m["data"].get("display_name") or m["data"].get("name")).lower()))
@@ -190,6 +199,7 @@ def load_mods(frame):
         os.makedirs(SMODS_PATH)
 
     # I have to copy paste, since smods json is different from other mods
+    
     versions = []
     seen_versions = set()
 
@@ -271,13 +281,12 @@ def load_mods(frame):
         # clone smods version, and paste it to SMODS_PATH
         shutil.copytree(Currentsmods["folder_path"], os.path.join(SMODS_PATH, Currentsmods["folder_name"]))
     if len(smodsRow.winfo_children()) == 0:
-        text = ctk.CTkLabel(smodsRow, text = "Couldn't find any instances of smods, try reloading.", font=("Comic Sans MS", 32))
-        text.pack()
+        ctk.CTkLabel(smodsRow, text = "Couldn't find any instances of smods, try reloading.", font=("Comic Sans MS", 24), pady=8).pack()
 
 
 
 
-# Seperator | smods to mods
+# Seperator | smods to mods button creation
 
 
 
@@ -347,126 +356,124 @@ def load_mods(frame):
             object.bind("<Leave>", lambda e, r=row, c=color: r.configure(fg_color=c))
 
         index += 1
-    
-    # add funny nothing button
-    nothn_btn = ctk.CTkButton(frame, text="Button that does nothing", font=("Comic Sans MS", 24, "normal", "italic"))
-    nothn_btn.pack(padx=5)
-    busy = False
+        
+        # add funny nothing button
+        nothn_btn = ctk.CTkButton(frame, text="Button that does nothing", font=("Comic Sans MS", 24, "normal", "italic"))
+        nothn_btn.pack(padx=5)
+        busy = False
 
 # the info funcs
-def load_download(frame):    
-    pass
-    # global busy
-    # if busy: show_admin_warning("Jeez give it a bloody second"); return
-    # busy = True
-    # for w in frame.winfo_children():
-    #     w.destroy()
+def load_download(frame):
+    global busy
+    if busy: show_admin_warning("Jeez give it a bloody second"); return
+    busy = True
+    for w in frame.winfo_children():
+        w.destroy()
 
-    # warnlabel = ctk.CTkLabel(frame, text="uhhh this might take a sec...")
-    # warnlabel.pack()
+    warnlabel = ctk.CTkLabel(frame, text="uhhh this might take a sec...")
+    warnlabel.pack()
     
-    # def worker():
+    def worker():
 
-    #     mods = []
-    #     CACHE_PATH = "mod_index_cache.json"
+        mods = []
 
-    #     CHUNK = 20
-    #     idx = 0
+        CHUNK = 20
+        idx = 0
 
-    #     def show_chunk(start, loadbut):
-    #         if loadbut: loadbut.destroy()
+        def show_chunk(start, loadbut):
+            if loadbut: loadbut.destroy()
 
-    #         nonlocal idx
-    #         chunk = mods[start:start+CHUNK]
-    #         for i, m in enumerate(chunk):
-    #             color = "#1E1E1E" if idx % 2 == 0 else "#2A2A2A"
-    #             row = ctk.CTkFrame(frame, fg_color=color, width=260, height=200)
-    #             row.grid(padx=10, pady=5)
+            nonlocal idx
+            chunk = mods[start:start+CHUNK]
+            for i, m in enumerate(chunk):
+                color = "#1E1E1E" if idx % 2 == 0 else "#2A2A2A"
+                row = ctk.CTkFrame(frame, fg_color=color, width=260, height=200)
+                row.grid(padx=10, pady=5)
                 
-    #             # later change this to a url (m["thumb"])
-    #             image = Image.open(resource_path("Placeholder.png"))
-    #             if m["thumb"]:
-    #                 try:
-    #                     image = Image.open(BytesIO(requests.get(m["thumb"]).content))
-    #                 except:
-    #                     pass
+                # later change this to a url (m["thumb"])
+                image = Image.open(resource_path("Placeholder.png"))
+                if m["thumb"]:
+                    try:
+                        image = Image.open(BytesIO(requests.get(m["thumb"]).content))
+                    except:
+                        pass
 
-    #             img = ctk.CTkImage(dark_image=image, size=(250 ,141.625)) # 16:9
+                img = ctk.CTkImage(dark_image=image, size=(250 ,141.625)) # 16:9
                 
-    #             ctk.CTkLabel(row, image=img, text="").pack(side="top", padx=10, pady=5)
-    #             ctk.CTkLabel(row, text=m["meta"].get("title") or m["name"], text_color="#fff", font=("Comic Sans MS", 16)).pack(side="left", padx=10, pady=5)
+                ctk.CTkLabel(row, image=img, text="").pack(side="top", padx=10, pady=5)
+                ctk.CTkLabel(row, text=m["meta"].get("title") or m["name"], text_color="#fff", font=("Comic Sans MS", 16)).pack(side="left", padx=10, pady=5)
 
-    #             def dl(mod=m):
-    #                 pass
+                def dl(mod=m):
+                    pass
 
-    #             ctk.CTkButton(row, text="Download", width=80, fg_color="#4C78E5", command=dl).pack(side="right", padx=10, pady=5)
-    #             idx += 1
+                ctk.CTkButton(row, text="Download", width=80, fg_color="#4C78E5", command=dl).pack(side="right", padx=10, pady=5)
+                idx += 1
 
-    #         # load more
-    #         if start + CHUNK < len(mods):
-    #             btn = ctk.CTkButton(frame, text="Load More") # sometimes just wont create ig
-    #             btn.grid(pady=10)
-    #             btn.configure(False,command=lambda b=btn: show_chunk(start+CHUNK, b))
+            # load more
+            if start + CHUNK < len(mods):
+                btn = ctk.CTkButton(frame, text="Load More") # sometimes just wont create ig
+                btn.grid(pady=10)
+                btn.configure(False,command=lambda b=btn: show_chunk(start+CHUNK, b))
 
-    #     frame.after(0, lambda: show_chunk(0, None))
+        frame.after(0, lambda: show_chunk(0, None))
         
-    #     base = "https://raw.githubusercontent.com/skyline69/balatro-mod-index/main/mods"
-    #     repo = "https://api.github.com/repos/skyline69/balatro-mod-index/contents/mods"
-    #     folders = requests.get(repo).json()
-    #     folders = sorted(folders, key=lambda item: item["name"][str.find(item["name"], "@"):len(item["name"])]) # omg my 1 month problem was that I was that **I** sorted it wrong...
+        base = "https://raw.githubusercontent.com/skyline69/balatro-mod-index/main/mods"
+        repo = "https://api.github.com/repos/skyline69/balatro-mod-index/contents/mods"
+        folders = requests.get(repo).json()
+        folders = sorted(folders, key=lambda item: item["name"][str.find(item["name"], "@"):len(item["name"])]) # omg my 1 month problem was that I was that **I** sorted it wrong...
 
-    #     threads = []
-    #     def loadmod_cool(f):
+        threads = []
+        def loadmod_cool(f):
 
-    #         modinfo = {"name": f["name"], "meta": {}, "desc": "", "thumb": None, "dl": None}
+            modinfo = {"name": f["name"], "meta": {}, "desc": "", "thumb": None, "dl": None}
 
-    #         try:
-    #             meta = requests.get(f"{base}/{f['name']}/meta.json").json()
+            try:
+                meta = requests.get(f"{base}/{f['name']}/meta.json").json()
 
-    #             modinfo["meta"] = meta
-    #             modinfo["name"] = meta["title"]
-    #             # meta Meta:  {'title': '123abc', 'requires-steamodded': False, 'requires-talisman': False, 'categories': ['Quality of Life', 'Miscellaneous'], 'author': '123abc',
-    #             #  'repo': 'https://github.com/123/abc', 'downloadURL': 'https://github.com/123/abc/archive/refs/tags/V1.0.0.zip', 'version': '1.0.0'}
-    #             modinfo["dl"] = meta.get("download_url")
-    #         except: return
+                modinfo["meta"] = meta
+                modinfo["name"] = meta["title"]
+                # meta Meta:  {'title': '123abc', 'requires-steamodded': False, 'requires-talisman': False, 'categories': ['Quality of Life', 'Miscellaneous'], 'author': '123abc',
+                #  'repo': 'https://github.com/123/abc', 'downloadURL': 'https://github.com/123/abc/archive/refs/tags/V1.0.0.zip', 'version': '1.0.0'}
+                modinfo["dl"] = meta.get("download_url")
+            except: return
 
-    #         try:
-    #             modinfo["desc"] = requests.get(f"{base}/{f['name']}/description.md").text
-    #         except:
-    #             modinfo["desc"] = "Unabled To load description"
-    #             pass
+            try:
+                modinfo["desc"] = requests.get(f"{base}/{f['name']}/description.md").text
+            except:
+                modinfo["desc"] = "Unabled To load description"
+                pass
 
-    #         try:
-    #             thumb_url = f"{base}/{f['name']}/thumbnail.jpg"
-    #             if requests.head(thumb_url).status_code == 200:
-    #                 modinfo["thumb"] = thumb_url
-    #         except: pass
+            try:
+                thumb_url = f"{base}/{f['name']}/thumbnail.jpg"
+                if requests.head(thumb_url).status_code == 200:
+                    modinfo["thumb"] = thumb_url
+            except: pass
 
-    #         mods.append(modinfo)
+            mods.append(modinfo)
 
-    #     chunkshown = False
-    #     for i in range(len(folders)):
-    #         f = folders[i]
-    #         if f["type"] != "dir": continue
-    #         threads = [t for t in threads if t.is_alive()]  # fuck dead threads
+        chunkshown = False
+        for i in range(len(folders)):
+            f = folders[i]
+            if f["type"] != "dir": continue
+            threads = [t for t in threads if t.is_alive()]  # fuck dead threads
 
-    #         while len(threads) >= 5:
-    #             time.sleep(0.1)
-    #             threads = [t for t in threads if t.is_alive()]  
+            while len(threads) >= 5:
+                time.sleep(0.1)
+                threads = [t for t in threads if t.is_alive()]  
 
-    #         curthread = threading.Thread(target=lambda: loadmod_cool(f))            
-    #         threads.append(curthread)
-    #         curthread.start() 
-    #                         # vv Because of this being called outside of the threads (since i dont want it running several times), 
-    #         if len(mods) >= 25 and not chunkshown:
-    #             warnlabel.destroy()
-    #             chunkshown = True
-    #             show_chunk(0, None)
-    #             global busy
-    #             busy = False
+            curthread = threading.Thread(target=lambda: loadmod_cool(f))            
+            threads.append(curthread)
+            curthread.start() 
+                            # vv Because of this being called outside of the threads (since i dont want it running several times), 
+            if len(mods) >= 25 and not chunkshown:
+                warnlabel.destroy()
+                chunkshown = True
+                show_chunk(0, None)
+                global busy
+                busy = False
 
-    # t = threading.Thread(target=worker)
-    # t.start() # to not lag my uio
+    t = threading.Thread(target=worker)
+    t.start() # to not lag my uio
     
 # info buttons
 def createInfobuttons(frame, modframe): # frame = sidemenu, modframe = the frame for mods
@@ -603,7 +610,7 @@ createInfobuttons(Infoframe, mod_list)
 
 load_mods(mod_list)
 
-# app.grid_columnconfigure(0, weight=1)
+app.grid_columnconfigure(0, weight=1)
 app.mainloop()
 
 # pyinstaller --onefile --noconsole --icon=icon.ico --add-data "ASSETS;ASSETS" main.py when exporting

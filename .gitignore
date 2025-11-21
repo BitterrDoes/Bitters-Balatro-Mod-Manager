@@ -1,3 +1,5 @@
 /build
 # /dist
 /main.spec
+/idea.png 
+# ^^ used for showing future plans
