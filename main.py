@@ -355,117 +355,118 @@ def load_mods(frame):
 
 # the info funcs
 def load_download(frame):    
-    global busy
-    if busy: show_admin_warning("Jeez give it a bloody second"); return
-    busy = True
-    for w in frame.winfo_children():
-        w.destroy()
+    pass
+    # global busy
+    # if busy: show_admin_warning("Jeez give it a bloody second"); return
+    # busy = True
+    # for w in frame.winfo_children():
+    #     w.destroy()
 
-    warnlabel = ctk.CTkLabel(frame, text="uhhh this might take a sec...")
-    warnlabel.pack()
+    # warnlabel = ctk.CTkLabel(frame, text="uhhh this might take a sec...")
+    # warnlabel.pack()
     
-    def worker():
+    # def worker():
 
-        mods = []
-        CACHE_PATH = "mod_index_cache.json"
+    #     mods = []
+    #     CACHE_PATH = "mod_index_cache.json"
 
-        CHUNK = 20
-        idx = 0
+    #     CHUNK = 20
+    #     idx = 0
 
-        def show_chunk(start, loadbut):
-            if loadbut: loadbut.destroy()
+    #     def show_chunk(start, loadbut):
+    #         if loadbut: loadbut.destroy()
 
-            nonlocal idx
-            chunk = mods[start:start+CHUNK]
-            for i, m in enumerate(chunk):
-                color = "#1E1E1E" if idx % 2 == 0 else "#2A2A2A"
-                row = ctk.CTkFrame(frame, fg_color=color, width=260, height=200)
-                row.grid(padx=10, pady=5)
+    #         nonlocal idx
+    #         chunk = mods[start:start+CHUNK]
+    #         for i, m in enumerate(chunk):
+    #             color = "#1E1E1E" if idx % 2 == 0 else "#2A2A2A"
+    #             row = ctk.CTkFrame(frame, fg_color=color, width=260, height=200)
+    #             row.grid(padx=10, pady=5)
                 
-                # later change this to a url (m["thumb"])
-                image = Image.open(resource_path("Placeholder.png"))
-                if m["thumb"]:
-                    try:
-                        image = Image.open(BytesIO(requests.get(m["thumb"]).content))
-                    except:
-                        pass
+    #             # later change this to a url (m["thumb"])
+    #             image = Image.open(resource_path("Placeholder.png"))
+    #             if m["thumb"]:
+    #                 try:
+    #                     image = Image.open(BytesIO(requests.get(m["thumb"]).content))
+    #                 except:
+    #                     pass
 
-                img = ctk.CTkImage(dark_image=image, size=(250 ,141.625)) # 16:9
+    #             img = ctk.CTkImage(dark_image=image, size=(250 ,141.625)) # 16:9
                 
-                ctk.CTkLabel(row, image=img, text="").pack(side="top", padx=10, pady=5)
-                ctk.CTkLabel(row, text=m["meta"].get("title") or m["name"], text_color="#fff", font=("Comic Sans MS", 16)).pack(side="left", padx=10, pady=5)
+    #             ctk.CTkLabel(row, image=img, text="").pack(side="top", padx=10, pady=5)
+    #             ctk.CTkLabel(row, text=m["meta"].get("title") or m["name"], text_color="#fff", font=("Comic Sans MS", 16)).pack(side="left", padx=10, pady=5)
 
-                def dl(mod=m):
-                    pass
+    #             def dl(mod=m):
+    #                 pass
 
-                ctk.CTkButton(row, text="Download", width=80, fg_color="#4C78E5", command=dl).pack(side="right", padx=10, pady=5)
-                idx += 1
+    #             ctk.CTkButton(row, text="Download", width=80, fg_color="#4C78E5", command=dl).pack(side="right", padx=10, pady=5)
+    #             idx += 1
 
-            # load more
-            if start + CHUNK < len(mods):
-                btn = ctk.CTkButton(frame, text="Load More") # sometimes just wont create ig
-                btn.grid(pady=10)
-                btn.configure(False,command=lambda b=btn: show_chunk(start+CHUNK, b))
+    #         # load more
+    #         if start + CHUNK < len(mods):
+    #             btn = ctk.CTkButton(frame, text="Load More") # sometimes just wont create ig
+    #             btn.grid(pady=10)
+    #             btn.configure(False,command=lambda b=btn: show_chunk(start+CHUNK, b))
 
-        frame.after(0, lambda: show_chunk(0, None))
+    #     frame.after(0, lambda: show_chunk(0, None))
         
-        base = "https://raw.githubusercontent.com/skyline69/balatro-mod-index/main/mods"
-        repo = "https://api.github.com/repos/skyline69/balatro-mod-index/contents/mods"
-        folders = requests.get(repo).json()
-        folders = sorted(folders, key=lambda item: item["name"][str.find(item["name"], "@"):len(item["name"])]) # omg my 1 month problem was that I was that **I** sorted it wrong...
+    #     base = "https://raw.githubusercontent.com/skyline69/balatro-mod-index/main/mods"
+    #     repo = "https://api.github.com/repos/skyline69/balatro-mod-index/contents/mods"
+    #     folders = requests.get(repo).json()
+    #     folders = sorted(folders, key=lambda item: item["name"][str.find(item["name"], "@"):len(item["name"])]) # omg my 1 month problem was that I was that **I** sorted it wrong...
 
-        threads = []
-        def loadmod_cool(f):
+    #     threads = []
+    #     def loadmod_cool(f):
 
-            modinfo = {"name": f["name"], "meta": {}, "desc": "", "thumb": None, "dl": None}
+    #         modinfo = {"name": f["name"], "meta": {}, "desc": "", "thumb": None, "dl": None}
 
-            try:
-                meta = requests.get(f"{base}/{f['name']}/meta.json").json()
+    #         try:
+    #             meta = requests.get(f"{base}/{f['name']}/meta.json").json()
 
-                modinfo["meta"] = meta
-                modinfo["name"] = meta["title"]
-                # meta Meta:  {'title': '123abc', 'requires-steamodded': False, 'requires-talisman': False, 'categories': ['Quality of Life', 'Miscellaneous'], 'author': '123abc',
-                #  'repo': 'https://github.com/123/abc', 'downloadURL': 'https://github.com/123/abc/archive/refs/tags/V1.0.0.zip', 'version': '1.0.0'}
-                modinfo["dl"] = meta.get("download_url")
-            except: return
+    #             modinfo["meta"] = meta
+    #             modinfo["name"] = meta["title"]
+    #             # meta Meta:  {'title': '123abc', 'requires-steamodded': False, 'requires-talisman': False, 'categories': ['Quality of Life', 'Miscellaneous'], 'author': '123abc',
+    #             #  'repo': 'https://github.com/123/abc', 'downloadURL': 'https://github.com/123/abc/archive/refs/tags/V1.0.0.zip', 'version': '1.0.0'}
+    #             modinfo["dl"] = meta.get("download_url")
+    #         except: return
 
-            try:
-                modinfo["desc"] = requests.get(f"{base}/{f['name']}/description.md").text
-            except:
-                modinfo["desc"] = "Unabled To load description"
-                pass
+    #         try:
+    #             modinfo["desc"] = requests.get(f"{base}/{f['name']}/description.md").text
+    #         except:
+    #             modinfo["desc"] = "Unabled To load description"
+    #             pass
 
-            try:
-                thumb_url = f"{base}/{f['name']}/thumbnail.jpg"
-                if requests.head(thumb_url).status_code == 200:
-                    modinfo["thumb"] = thumb_url
-            except: pass
+    #         try:
+    #             thumb_url = f"{base}/{f['name']}/thumbnail.jpg"
+    #             if requests.head(thumb_url).status_code == 200:
+    #                 modinfo["thumb"] = thumb_url
+    #         except: pass
 
-            mods.append(modinfo)
+    #         mods.append(modinfo)
 
-        chunkshown = False
-        for i in range(len(folders)):
-            f = folders[i]
-            if f["type"] != "dir": continue
-            threads = [t for t in threads if t.is_alive()]  # fuck dead threads
+    #     chunkshown = False
+    #     for i in range(len(folders)):
+    #         f = folders[i]
+    #         if f["type"] != "dir": continue
+    #         threads = [t for t in threads if t.is_alive()]  # fuck dead threads
 
-            while len(threads) >= 5:
-                time.sleep(0.1)
-                threads = [t for t in threads if t.is_alive()]  
+    #         while len(threads) >= 5:
+    #             time.sleep(0.1)
+    #             threads = [t for t in threads if t.is_alive()]  
 
-            curthread = threading.Thread(target=lambda: loadmod_cool(f))            
-            threads.append(curthread)
-            curthread.start() 
-                            # vv Because of this being called outside of the threads (since i dont want it running several times), 
-            if len(mods) >= 25 and not chunkshown:
-                warnlabel.destroy()
-                chunkshown = True
-                show_chunk(0, None)
-                global busy
-                busy = False
+    #         curthread = threading.Thread(target=lambda: loadmod_cool(f))            
+    #         threads.append(curthread)
+    #         curthread.start() 
+    #                         # vv Because of this being called outside of the threads (since i dont want it running several times), 
+    #         if len(mods) >= 25 and not chunkshown:
+    #             warnlabel.destroy()
+    #             chunkshown = True
+    #             show_chunk(0, None)
+    #             global busy
+    #             busy = False
 
-    t = threading.Thread(target=worker)
-    t.start() # to not lag my uio
+    # t = threading.Thread(target=worker)
+    # t.start() # to not lag my uio
     
 # info buttons
 def createInfobuttons(frame, modframe): # frame = sidemenu, modframe = the frame for mods
@@ -602,7 +603,7 @@ createInfobuttons(Infoframe, mod_list)
 
 load_mods(mod_list)
 
-app.grid_columnconfigure(0, weight=1)
+# app.grid_columnconfigure(0, weight=1)
 app.mainloop()
 
 # pyinstaller --onefile --noconsole --icon=icon.ico --add-data "ASSETS;ASSETS" main.py when exporting
